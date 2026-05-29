@@ -183,3 +183,10 @@ export async function getDefaultNameForCode(code: string): Promise<string> {
   const codeEntry = codes.find((c) => c.code === upperCode);
   return codeEntry?.name || "User";
 }
+
+export async function getAdminStatus(code: string): Promise<boolean> {
+  const codes = await readAccessCodes();
+  const upperCode = code.toUpperCase().trim();
+  const codeEntry = codes.find((c) => c.code === upperCode);
+  return codeEntry?.isAdmin === true;
+}

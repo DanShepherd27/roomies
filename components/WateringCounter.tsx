@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { recordWatering, getLastWateringTime } from "@/lib/server-actions";
-import { getDefaultNameForCode } from "@/lib/access-codes";
+import { getAdminStatus, getDefaultNameForCode } from "@/lib/access-codes";
 import { deleteCookie } from "@/lib/cookies";
 
 interface WateringCounterProps {
@@ -22,6 +22,7 @@ export default function WateringCounter({
   const [daysAgo, setDaysAgo] = useState<string>("loading...");
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const calculateDaysAgo = (timestamp: string) => {
     const lastWateringDate = new Date(timestamp);
@@ -42,9 +43,10 @@ export default function WateringCounter({
   };
 
   const fetchLatestData = useCallback(async () => {
-    const [timestamp, latestName] = await Promise.all([
+    const [timestamp, latestName, adminStatus] = await Promise.all([
       getLastWateringTime(deviceId),
-      getDefaultNameForCode(accessCode)
+      getDefaultNameForCode(accessCode),
+      getAdminStatus(accessCode),
     ]);
 
     if (timestamp) {
@@ -57,12 +59,18 @@ export default function WateringCounter({
     if (latestName) {
       setRoommateName(latestName);
     }
+
+    if (adminStatus) {
+      setIsAdmin(true);
+    } else {
+      setIsAdmin(false);
+    }
   }, [deviceId, accessCode]);
 
   useEffect(() => {
     // Immediately fetch the latest name and watering time
     fetchLatestData();
-    
+
     // Refresh every minute
     const interval = setInterval(fetchLatestData, 60000);
     return () => clearInterval(interval);
@@ -102,6 +110,14 @@ export default function WateringCounter({
         >
           History
         </Link>
+        {isAdmin && (
+          <Link
+            href="/admin"
+            className="text-gray-600 hover:text-green-600 text-sm font-medium transition"
+          >
+            Admin
+          </Link>
+        )}
         <button
           onClick={handleLogout}
           className="text-gray-600 hover:text-gray-800 text-sm font-medium cursor-pointer transition"
