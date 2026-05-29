@@ -9,6 +9,7 @@ import {
   updateAccessCodeName,
   toggleAccessCodeAdmin,
 } from "@/lib/admin-actions";
+import Link from "next/link";
 
 interface CodeEntry {
   code: string;
@@ -138,12 +139,20 @@ export default function AdminPanel() {
             <h1 className="text-4xl font-bold text-gray-800">🔐 Admin Panel</h1>
             <p className="text-gray-600">Manage roommate access codes</p>
           </div>
-          <button
-            onClick={handleLogout}
-            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition cursor-pointer"
-          >
-            Logout
-          </button>
+          <div className="flex gap-2">
+            <Link
+              href="/"
+              className="px-4 py-2 bg-white text-white rounded-lg hover:bg-gray-100 transition cursor-pointer font-medium border border-gray-300"
+            >
+              🏠
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition cursor-pointer"
+            >
+              Logout
+            </button>
+          </div>
         </div>
 
         {/* Add New Code Section */}
