@@ -9,11 +9,13 @@ import { deleteCookie } from "@/lib/cookies";
 interface WateringCounterProps {
   deviceId: string;
   roommateName: string;
+  accessCode: string;
 }
 
 export default function WateringCounter({
   deviceId,
   roommateName,
+  accessCode,
 }: WateringCounterProps) {
   const [daysAgo, setDaysAgo] = useState<string>("loading...");
   const [isLoading, setIsLoading] = useState(false);
@@ -61,7 +63,7 @@ export default function WateringCounter({
 
   const handleWaterPlants = async () => {
     setIsLoading(true);
-    const result = await recordWatering(deviceId, roommateName);
+    const result = await recordWatering(deviceId, accessCode);
 
     if (result.success && result.timestamp) {
       setDaysAgo("0 minutes ago");
@@ -74,6 +76,7 @@ export default function WateringCounter({
   const handleLogout = () => {
     deleteCookie("deviceId");
     deleteCookie("roommateName");
+    deleteCookie("accessCode");
     window.location.reload();
   };
 

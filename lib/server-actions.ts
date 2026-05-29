@@ -4,13 +4,14 @@ import { put, list, get } from "@vercel/blob";
 import { promises as fs } from "fs";
 import path from "path";
 import { appendFile } from "fs/promises";
+import { readAccessCodes } from "./access-codes";
 
 // Use Blob if token is present, otherwise fallback to local filesystem
 const USE_BLOB = !!process.env.BLOB_READ_WRITE_TOKEN;
 const LOCAL_DATA_DIR = path.join(process.cwd(), "data");
 const LOCAL_WATERING_LOG = path.join(LOCAL_DATA_DIR, "watering.csv");
 const BLOB_FILENAME = "watering.csv";
-const CSV_HEADER = "device_id,roommate_name,timestamp\n";
+const CSV_HEADER = "device_id,access_code,timestamp\n";
 
 /**
  * Gets the URL of the watering.csv blob if it exists.
@@ -85,11 +86,12 @@ async function ensureCSVHeader() {
   }
 }
 
-export async function recordWatering(deviceId: string, roommateName: string) {
+export async function recordWatering(deviceId: string, accessCode: string) {
   try {
     await ensureCSVHeader();
     const timestamp = new Date().toISOString();
-    const csvLine = `${deviceId},"${roommateName}",${timestamp}\n`;
+    // Use accessCode instead of name in the CSV
+    const csvLine = `${deviceId},"${accessCode.toUpperCase()}",${timestamp}\n`;
 
     if (USE_BLOB) {
       console.log("Recording watering to Vercel Blob...");
@@ -160,7 +162,7 @@ export async function getLastWateringTime(
     const lastLine = lines[lines.length - 1];
     const parts = lastLine.split(",");
 
-    // According to CSV schema: device_id,roommate_name,timestamp
+    // According to CSV schema: device_id,access_code,timestamp
     // Timestamp is at index 2
     return parts[2] || null;
   } catch (error) {
@@ -169,7 +171,9 @@ export async function getLastWateringTime(
   }
 }
 
-export async function getWateringHistory(): Promise<{ roommate_name: string; timestamp: string }[]> {
+export async function getWateringHistory(): Promise<
+  { roommate_name: string; timestamp: string }[]
+> {
   try {
     await ensureCSVHeader();
     let content = "";
@@ -192,13 +196,19 @@ export async function getWateringHistory(): Promise<{ roommate_name: string; tim
       .split("\n")
       .filter((line) => line.trim() && !line.startsWith("device_id"));
 
-    return lines.map(line => {
+    // Get latest access codes to resolve names
+    const codes = await readAccessCodes();
+    const codeMap = new Map(codes.map((c) => [c.code.toUpperCase(), c.name]));
+
+    return lines.map((line) => {
       const parts = line.split(",");
-      // Remove quotes from roommate_name if present
-      const name = parts[1].replace(/^"|"$/g, "");
+      // parts[1] is now access_code
+      const code = parts[1].replace(/^"|"$/g, "").toUpperCase();
+      const name = codeMap.get(code) || "Unknown User";
+
       return {
         roommate_name: name,
-        timestamp: parts[2]
+        timestamp: parts[2],
       };
     });
   } catch (error) {

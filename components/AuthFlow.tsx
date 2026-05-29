@@ -1,12 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getMacAddress, generateFallbackDeviceId } from "@/lib/mac-address";
 import { isValidAccessCode, getDefaultNameForCode } from "@/lib/access-codes";
 import { setCookie, getCookie } from "@/lib/cookies";
 
 interface AuthFlowProps {
-  onAuth: (deviceId: string, roommateName: string) => void;
+  onAuth: (deviceId: string, roommateName: string, accessCode: string) => void;
 }
 
 export default function AuthFlow({ onAuth }: AuthFlowProps) {
@@ -16,31 +15,22 @@ export default function AuthFlow({ onAuth }: AuthFlowProps) {
   const [accessCode, setAccessCode] = useState("");
   const [roommateName, setRoommateName] = useState("");
   const [error, setError] = useState("");
-  const [deviceId, setDeviceId] = useState<string | null>(null);
 
   useEffect(() => {
     const initializeAuth = async () => {
-      // Check if user already has a device ID and name stored in cookies
+      // Check if user already has credentials stored in cookies
       const storedDeviceId = getCookie("deviceId");
       const storedRoommateName = getCookie("roommateName");
+      const storedAccessCode = getCookie("accessCode");
 
-      if (storedDeviceId && storedRoommateName) {
+      if (storedDeviceId && storedRoommateName && storedAccessCode) {
         // User is already authenticated
-        onAuth(storedDeviceId, storedRoommateName);
+        onAuth(storedDeviceId, storedRoommateName, storedAccessCode);
         return;
       }
 
-      // Try to get MAC address first
-      const mac = await getMacAddress();
-      if (mac) {
-        setDeviceId(mac);
-        setStep("name-entry");
-      } else {
-        // Fall back to access code flow
-        const fallbackId = generateFallbackDeviceId();
-        setDeviceId(fallbackId);
-        setStep("access-code");
-      }
+      // No valid session, go to access code entry
+      setStep("access-code");
     };
 
     initializeAuth();
@@ -51,6 +41,11 @@ export default function AuthFlow({ onAuth }: AuthFlowProps) {
   ) => {
     e.preventDefault();
     setError("");
+
+    if (!accessCode.trim()) {
+      setError("Please enter an access code.");
+      return;
+    }
 
     const isValid = await isValidAccessCode(accessCode);
     if (!isValid) {
@@ -72,16 +67,15 @@ export default function AuthFlow({ onAuth }: AuthFlowProps) {
       return;
     }
 
-    if (!deviceId) {
-      setError("Device ID not found.");
-      return;
-    }
+    // Use a simplified device ID based on the access code + a random string
+    const deviceId = `device_${accessCode.toLowerCase().trim()}_${Math.random().toString(36).substring(2, 7)}`;
 
     // Store in cookies
     setCookie("deviceId", deviceId, 365);
     setCookie("roommateName", roommateName, 365);
+    setCookie("accessCode", accessCode.toUpperCase().trim(), 365);
 
-    onAuth(deviceId, roommateName);
+    onAuth(deviceId, roommateName, accessCode.toUpperCase().trim());
   };
 
   if (step === "loading") {

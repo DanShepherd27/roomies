@@ -8,10 +8,12 @@ export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [deviceId, setDeviceId] = useState("");
   const [roommateName, setRoommateName] = useState("");
+  const [accessCode, setAccessCode] = useState("");
 
-  const handleAuth = (deviceId: string, roommateName: string) => {
+  const handleAuth = (deviceId: string, roommateName: string, accessCode: string) => {
     setDeviceId(deviceId);
     setRoommateName(roommateName);
+    setAccessCode(accessCode);
     setIsAuthenticated(true);
   };
 
@@ -19,5 +21,11 @@ export default function Home() {
     return <AuthFlow onAuth={handleAuth} />;
   }
 
-  return <WateringCounter deviceId={deviceId} roommateName={roommateName} />;
+  return (
+    <WateringCounter 
+      deviceId={deviceId} 
+      roommateName={roommateName} 
+      accessCode={accessCode} 
+    />
+  );
 }
