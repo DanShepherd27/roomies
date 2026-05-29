@@ -104,14 +104,14 @@ export default function WateringCounter({
         <button
           onClick={handleWaterPlants}
           disabled={isLoading}
-          className="relative w-40 h-40 rounded-full bg-gradient-to-br from-green-400 to-green-600 hover:from-green-500 hover:to-green-700 disabled:from-gray-400 disabled:to-gray-500 shadow-2xl transition-all duration-200 transform hover:scale-105 disabled:scale-100 flex items-center justify-center cursor-pointer"
+          className={`relative w-40 h-40 rounded-full bg-gradient-to-br from-green-400 to-green-600 hover:from-green-500 hover:to-green-700 disabled:from-gray-400 disabled:to-gray-500 shadow-2xl transition-all duration-200 transform hover:scale-105 disabled:scale-100 flex items-center justify-center cursor-pointer ${!isLoading ? "animate-pulse-scale" : ""}`}
         >
           <Image
             src="/watering_pot_icon.png"
             alt="Watering pot"
             width={80}
             height={80}
-            className="animate-pulse"
+            className={!isLoading ? "animate-pulse" : ""}
           />
           {isLoading && (
             <div className="absolute inset-0 rounded-full animate-spin">
