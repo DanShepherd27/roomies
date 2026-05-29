@@ -20,6 +20,10 @@
 # production
 /build
 
+# Roomies specific
+/data/
+/build
+
 # misc
 .DS_Store
 *.pem
