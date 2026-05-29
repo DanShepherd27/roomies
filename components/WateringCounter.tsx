@@ -63,7 +63,7 @@ export default function WateringCounter({
     const result = await recordWatering(deviceId, roommateName);
 
     if (result.success && result.timestamp) {
-      setDaysAgo("0 days ago");
+      setDaysAgo("0 minutes ago");
       setLastUpdate(new Date(result.timestamp));
     }
 
