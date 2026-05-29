@@ -64,7 +64,7 @@ export default function HistoryView() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 p-4">
+    <div className="flex flex-col items-center justify-center min-h-dynamic bg-gradient-to-br from-green-50 to-emerald-50 p-4">
       <div className="bg-white p-6 rounded-2xl shadow-xl w-full max-w-md">
         <div className="flex justify-between items-center mb-6">
           <Link
