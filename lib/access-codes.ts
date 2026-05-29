@@ -22,7 +22,9 @@ const BLOB_FILENAME = "access_codes.json";
  */
 async function getBlobUrl(): Promise<string | null> {
   try {
-    const { blobs } = await list({ prefix: BLOB_FILENAME });
+    const { blobs } = await list({
+      prefix: BLOB_FILENAME,
+    });
     // Find the exact match for the pathname to avoid suffix issues
     const blob = blobs.find((b) => b.pathname === BLOB_FILENAME);
     return blob ? blob.url : null;
@@ -39,10 +41,13 @@ async function fetchBlobContent(url: string) {
   try {
     const blobResponse = await get(url, {
       access: "private",
+      useCache: false,
     });
     const response = new Response(blobResponse?.stream);
     if (!response.ok) {
-      console.error(`Blob fetch failed with status ${response.status}: ${response.statusText}`);
+      console.error(
+        `Blob fetch failed with status ${response.status}: ${response.statusText}`,
+      );
     }
     return response;
   } catch (err) {

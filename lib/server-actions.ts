@@ -17,7 +17,9 @@ const CSV_HEADER = "device_id,roommate_name,timestamp\n";
  */
 async function getBlobUrl(): Promise<string | null> {
   try {
-    const { blobs } = await list({ prefix: BLOB_FILENAME });
+    const { blobs } = await list({
+      prefix: BLOB_FILENAME,
+    });
     // Find exact match to avoid random suffix issues
     const blob = blobs.find((b) => b.pathname === BLOB_FILENAME);
     return blob ? blob.url : null;
@@ -34,10 +36,13 @@ async function fetchBlobContent(url: string) {
   try {
     const blobResponse = await get(url, {
       access: "private",
+      useCache: false,
     });
     const response = new Response(blobResponse?.stream);
     if (!response.ok) {
-      console.error(`Blob fetch failed with status ${response.status}: ${response.statusText}`);
+      console.error(
+        `Blob fetch failed with status ${response.status}: ${response.statusText}`,
+      );
     }
     return response;
   } catch (err) {
@@ -119,8 +124,12 @@ export async function recordWatering(deviceId: string, roommateName: string) {
   }
 }
 
+/**
+ * Returns the most recent watering timestamp from ANY device.
+ * This ensures the counter is synced across all roommates.
+ */
 export async function getLastWateringTime(
-  deviceId: string,
+  _deviceId: string, // Kept for signature compatibility but ignored for global sync
 ): Promise<string | null> {
   try {
     await ensureCSVHeader();
@@ -144,17 +153,16 @@ export async function getLastWateringTime(
       .split("\n")
       .filter((line) => line.trim() && !line.startsWith("device_id"));
 
-    // Find the last watering for this device
-    let lastTimestamp: string | null = null;
-    for (let i = lines.length - 1; i >= 0; i--) {
-      const parts = lines[i].split(",");
-      if (parts[0] === deviceId) {
-        lastTimestamp = parts[2];
-        break;
-      }
-    }
+    // If there are no log lines, return null
+    if (lines.length === 0) return null;
 
-    return lastTimestamp;
+    // The last line in the CSV is the most recent watering event
+    const lastLine = lines[lines.length - 1];
+    const parts = lastLine.split(",");
+
+    // According to CSV schema: device_id,roommate_name,timestamp
+    // Timestamp is at index 2
+    return parts[2] || null;
   } catch (error) {
     console.error("Error reading watering log:", error);
     return null;
