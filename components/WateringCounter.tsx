@@ -4,19 +4,21 @@ import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { recordWatering, getLastWateringTime } from "@/lib/server-actions";
+import { getDefaultNameForCode } from "@/lib/access-codes";
 import { deleteCookie } from "@/lib/cookies";
 
 interface WateringCounterProps {
   deviceId: string;
-  roommateName: string;
+  initialRoommateName: string;
   accessCode: string;
 }
 
 export default function WateringCounter({
   deviceId,
-  roommateName,
+  initialRoommateName,
   accessCode,
 }: WateringCounterProps) {
+  const [roommateName, setRoommateName] = useState(initialRoommateName);
   const [daysAgo, setDaysAgo] = useState<string>("loading...");
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
@@ -39,27 +41,32 @@ export default function WateringCounter({
     return `${diffDays} day${diffDays !== 1 ? "s" : ""} ago`;
   };
 
-  const fetchLastWateringTime = useCallback(async () => {
-    const timestamp = await getLastWateringTime(deviceId);
+  const fetchLatestData = useCallback(async () => {
+    const [timestamp, latestName] = await Promise.all([
+      getLastWateringTime(deviceId),
+      getDefaultNameForCode(accessCode)
+    ]);
+
     if (timestamp) {
       setDaysAgo(calculateDaysAgo(timestamp));
       setLastUpdate(new Date(timestamp));
     } else {
       setDaysAgo("Never");
     }
-  }, [deviceId]);
+
+    if (latestName) {
+      setRoommateName(latestName);
+    }
+  }, [deviceId, accessCode]);
 
   useEffect(() => {
-    // Immediately fetch the last watering time
-    const fetchImmediate = async () => {
-      await fetchLastWateringTime();
-    };
-
-    fetchImmediate();
+    // Immediately fetch the latest name and watering time
+    fetchLatestData();
+    
     // Refresh every minute
-    const interval = setInterval(fetchLastWateringTime, 60000);
+    const interval = setInterval(fetchLatestData, 60000);
     return () => clearInterval(interval);
-  }, [fetchLastWateringTime]);
+  }, [fetchLatestData]);
 
   const handleWaterPlants = async () => {
     setIsLoading(true);

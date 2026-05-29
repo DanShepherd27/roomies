@@ -24,7 +24,7 @@ export default function Home() {
   return (
     <WateringCounter 
       deviceId={deviceId} 
-      roommateName={roommateName} 
+      initialRoommateName={roommateName} 
       accessCode={accessCode} 
     />
   );
