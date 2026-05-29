@@ -11,7 +11,8 @@ export interface CodeEntry {
   isAdmin?: boolean;
 }
 
-const IS_VERCEL = !!process.env.VERCEL;
+// Use Blob if token is present, otherwise fallback to local filesystem
+const USE_BLOB = !!process.env.BLOB_READ_WRITE_TOKEN;
 const LOCAL_DATA_DIR = path.join(process.cwd(), "data");
 const LOCAL_CODES_FILE = path.join(LOCAL_DATA_DIR, "access_codes.json");
 const BLOB_FILENAME = "access_codes.json";
@@ -22,6 +23,7 @@ const BLOB_FILENAME = "access_codes.json";
 async function getBlobUrl(): Promise<string | null> {
   try {
     const { blobs } = await list({ prefix: BLOB_FILENAME });
+    // Find the exact match for the pathname to avoid suffix issues
     const blob = blobs.find((b) => b.pathname === BLOB_FILENAME);
     return blob ? blob.url : null;
   } catch (err) {
@@ -37,9 +39,12 @@ async function fetchBlobContent(url: string) {
   try {
     const blobResponse = await get(url, {
       access: "private",
-      // The SDK reads BLOB_READ_WRITE_TOKEN from env automatically
     });
-    return new Response(blobResponse?.stream);
+    const response = new Response(blobResponse?.stream);
+    if (!response.ok) {
+      console.error(`Blob fetch failed with status ${response.status}: ${response.statusText}`);
+    }
+    return response;
   } catch (err) {
     console.error("Error fetching private blob with SDK:", err);
     throw err;
@@ -47,7 +52,7 @@ async function fetchBlobContent(url: string) {
 }
 
 export async function ensureCodesFile(): Promise<void> {
-  if (IS_VERCEL) {
+  if (USE_BLOB) {
     const url = await getBlobUrl();
     if (!url) {
       console.log("Initializing access codes in Vercel Blob (private)");
@@ -63,12 +68,14 @@ export async function ensureCodesFile(): Promise<void> {
       await put(BLOB_FILENAME, JSON.stringify(defaultData, null, 2), {
         access: "private",
         addRandomSuffix: false,
+        allowOverwrite: true,
       });
+      console.log("Access codes initialized in Blob.");
     }
     return;
   }
 
-  // Local development
+  // Local development fallback
   try {
     await fs.access(LOCAL_DATA_DIR);
   } catch {
@@ -93,7 +100,7 @@ export async function ensureCodesFile(): Promise<void> {
 
 export async function readAccessCodes(): Promise<CodeEntry[]> {
   try {
-    if (IS_VERCEL) {
+    if (USE_BLOB) {
       const url = await getBlobUrl();
       if (url) {
         const response = await fetchBlobContent(url);
@@ -133,11 +140,15 @@ export async function readAccessCodes(): Promise<CodeEntry[]> {
 
 export async function writeAccessCodes(codes: CodeEntry[]): Promise<void> {
   try {
-    if (IS_VERCEL) {
+    if (USE_BLOB) {
+      console.log("Writing access codes to Vercel Blob...");
+      // Use allowOverwrite: true to replace the existing blob
       await put(BLOB_FILENAME, JSON.stringify(codes, null, 2), {
         access: "private",
         addRandomSuffix: false,
+        allowOverwrite: true,
       });
+      console.log("Successfully wrote access codes to Blob.");
     } else {
       await ensureCodesFile();
       await fs.writeFile(LOCAL_CODES_FILE, JSON.stringify(codes, null, 2));
