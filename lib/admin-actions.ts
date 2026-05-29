@@ -1,57 +1,9 @@
 "use server";
 
-import { promises as fs } from "fs";
-import path from "path";
-
-const CODES_FILE = path.join(process.cwd(), "data", "access_codes.json");
-
-interface CodeEntry {
-  code: string;
-  name: string;
-  createdAt: string;
-  isAdmin?: boolean;
-}
-
-// Ensure codes file exists with default data
-async function ensureCodesFile() {
-  try {
-    await fs.access(CODES_FILE);
-  } catch {
-    // File doesn't exist, create it with default code
-    const dataDir = path.join(process.cwd(), "data");
-    try {
-      await fs.access(dataDir);
-    } catch {
-      await fs.mkdir(dataDir, { recursive: true });
-    }
-
-    const defaultData: CodeEntry[] = [
-      {
-        code: "ROOMMATE01",
-        name: "Roommate 1",
-        createdAt: new Date().toISOString(),
-        isAdmin: false,
-      },
-    ];
-
-    await fs.writeFile(CODES_FILE, JSON.stringify(defaultData, null, 2));
-  }
-}
+import { readAccessCodes, writeAccessCodes, CodeEntry } from "./access-codes";
 
 export async function getAllAccessCodes(): Promise<CodeEntry[]> {
-  await ensureCodesFile();
-  try {
-    const content = await fs.readFile(CODES_FILE, "utf-8");
-    return JSON.parse(content);
-  } catch {
-    return [
-      {
-        code: "ROOMMATE01",
-        name: "Roommate 1",
-        createdAt: new Date().toISOString(),
-      },
-    ];
-  }
+  return await readAccessCodes();
 }
 
 export async function addAccessCode(
@@ -59,11 +11,8 @@ export async function addAccessCode(
   name: string,
   isAdmin?: boolean,
 ): Promise<{ success: boolean; error?: string }> {
-  await ensureCodesFile();
-
   try {
-    const content = await fs.readFile(CODES_FILE, "utf-8");
-    const codes: CodeEntry[] = JSON.parse(content);
+    const codes = await readAccessCodes();
 
     // Check if code already exists
     if (codes.some((c) => c.code === code.toUpperCase())) {
@@ -78,7 +27,7 @@ export async function addAccessCode(
       isAdmin: isAdmin || false,
     });
 
-    await fs.writeFile(CODES_FILE, JSON.stringify(codes, null, 2));
+    await writeAccessCodes(codes);
     return { success: true };
   } catch {
     return { success: false, error: "Failed to add code" };
@@ -88,11 +37,8 @@ export async function addAccessCode(
 export async function deleteAccessCode(
   code: string,
 ): Promise<{ success: boolean; error?: string }> {
-  await ensureCodesFile();
-
   try {
-    const content = await fs.readFile(CODES_FILE, "utf-8");
-    let codes: CodeEntry[] = JSON.parse(content);
+    let codes = await readAccessCodes();
 
     const codeToDelete = codes.find((c) => c.code === code.toUpperCase());
     if (!codeToDelete) {
@@ -113,7 +59,7 @@ export async function deleteAccessCode(
     }
 
     codes = codes.filter((c) => c.code !== code.toUpperCase());
-    await fs.writeFile(CODES_FILE, JSON.stringify(codes, null, 2));
+    await writeAccessCodes(codes);
     return { success: true };
   } catch {
     return { success: false, error: "Failed to delete code" };
@@ -124,11 +70,8 @@ export async function updateAccessCodeName(
   code: string,
   newName: string,
 ): Promise<{ success: boolean; error?: string }> {
-  await ensureCodesFile();
-
   try {
-    const content = await fs.readFile(CODES_FILE, "utf-8");
-    const codes: CodeEntry[] = JSON.parse(content);
+    const codes = await readAccessCodes();
 
     const codeEntry = codes.find((c) => c.code === code.toUpperCase());
     if (!codeEntry) {
@@ -136,7 +79,7 @@ export async function updateAccessCodeName(
     }
 
     codeEntry.name = newName.trim() || "Unnamed Roommate";
-    await fs.writeFile(CODES_FILE, JSON.stringify(codes, null, 2));
+    await writeAccessCodes(codes);
     return { success: true };
   } catch {
     return { success: false, error: "Failed to update code" };
@@ -146,11 +89,8 @@ export async function updateAccessCodeName(
 export async function toggleAccessCodeAdmin(
   code: string,
 ): Promise<{ success: boolean; error?: string }> {
-  await ensureCodesFile();
-
   try {
-    const content = await fs.readFile(CODES_FILE, "utf-8");
-    const codes: CodeEntry[] = JSON.parse(content);
+    const codes = await readAccessCodes();
 
     const codeEntry = codes.find((c) => c.code === code.toUpperCase());
     if (!codeEntry) {
@@ -158,7 +98,7 @@ export async function toggleAccessCodeAdmin(
     }
 
     codeEntry.isAdmin = !codeEntry.isAdmin;
-    await fs.writeFile(CODES_FILE, JSON.stringify(codes, null, 2));
+    await writeAccessCodes(codes);
     return { success: true };
   } catch {
     return { success: false, error: "Failed to toggle admin status" };
