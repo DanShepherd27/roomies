@@ -22,7 +22,7 @@ const BLOB_FILENAME = "access_codes.json";
 async function getBlobUrl(): Promise<string | null> {
   try {
     const { blobs } = await list({ prefix: BLOB_FILENAME });
-    const blob = blobs.find(b => b.pathname === BLOB_FILENAME);
+    const blob = blobs.find((b) => b.pathname === BLOB_FILENAME);
     return blob ? blob.url : null;
   } catch (err) {
     console.error("Error listing blobs:", err);
@@ -35,11 +35,11 @@ async function getBlobUrl(): Promise<string | null> {
  */
 async function fetchBlobContent(url: string) {
   try {
-    const { stream } = await get(url, { 
-      access: 'private',
+    const blobResponse = await get(url, {
+      access: "private",
       // The SDK reads BLOB_READ_WRITE_TOKEN from env automatically
     });
-    return new Response(stream);
+    return new Response(blobResponse?.stream);
   } catch (err) {
     console.error("Error fetching private blob with SDK:", err);
     throw err;
