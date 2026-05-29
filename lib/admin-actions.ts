@@ -29,7 +29,8 @@ export async function addAccessCode(
 
     await writeAccessCodes(codes);
     return { success: true };
-  } catch {
+  } catch (err) {
+    console.error("Failed to add code:", err);
     return { success: false, error: "Failed to add code" };
   }
 }
@@ -61,7 +62,8 @@ export async function deleteAccessCode(
     codes = codes.filter((c) => c.code !== code.toUpperCase());
     await writeAccessCodes(codes);
     return { success: true };
-  } catch {
+  } catch (err) {
+    console.error("Failed to delete code:", err);
     return { success: false, error: "Failed to delete code" };
   }
 }
@@ -81,7 +83,8 @@ export async function updateAccessCodeName(
     codeEntry.name = newName.trim() || "Unnamed Roommate";
     await writeAccessCodes(codes);
     return { success: true };
-  } catch {
+  } catch (err) {
+    console.error("Failed to update code:", err);
     return { success: false, error: "Failed to update code" };
   }
 }
@@ -100,7 +103,8 @@ export async function toggleAccessCodeAdmin(
     codeEntry.isAdmin = !codeEntry.isAdmin;
     await writeAccessCodes(codes);
     return { success: true };
-  } catch {
+  } catch (err) {
+    console.error("Failed to toggle admin status:", err);
     return { success: false, error: "Failed to toggle admin status" };
   }
 }
