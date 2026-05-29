@@ -168,3 +168,41 @@ export async function getLastWateringTime(
     return null;
   }
 }
+
+export async function getWateringHistory(): Promise<{ roommate_name: string; timestamp: string }[]> {
+  try {
+    await ensureCSVHeader();
+    let content = "";
+
+    if (USE_BLOB) {
+      const url = await getBlobUrl();
+      if (url) {
+        const response = await fetchBlobContent(url);
+        if (response.ok) {
+          content = await response.text();
+        }
+      }
+    } else {
+      content = await fs.readFile(LOCAL_WATERING_LOG, "utf-8");
+    }
+
+    if (!content) return [];
+
+    const lines = content
+      .split("\n")
+      .filter((line) => line.trim() && !line.startsWith("device_id"));
+
+    return lines.map(line => {
+      const parts = line.split(",");
+      // Remove quotes from roommate_name if present
+      const name = parts[1].replace(/^"|"$/g, "");
+      return {
+        roommate_name: name,
+        timestamp: parts[2]
+      };
+    });
+  } catch (error) {
+    console.error("Error reading watering history:", error);
+    return [];
+  }
+}

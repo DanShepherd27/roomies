@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { recordWatering, getLastWateringTime } from "@/lib/server-actions";
 import { deleteCookie } from "@/lib/cookies";
 
@@ -78,7 +79,19 @@ export default function WateringCounter({
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-green-50 to-emerald-50 p-4">
-      <div className="absolute top-4 right-4">
+      <div className="absolute top-4 right-4 flex items-center space-x-4">
+        <Link
+          href="/stats"
+          className="text-gray-600 hover:text-green-600 text-sm font-medium transition"
+        >
+          Stats
+        </Link>
+        <Link
+          href="/history"
+          className="text-gray-600 hover:text-green-600 text-sm font-medium transition"
+        >
+          History
+        </Link>
         <button
           onClick={handleLogout}
           className="text-gray-600 hover:text-gray-800 text-sm font-medium cursor-pointer transition"
@@ -104,7 +117,9 @@ export default function WateringCounter({
         <button
           onClick={handleWaterPlants}
           disabled={isLoading}
-          className={`relative w-40 h-40 rounded-full bg-gradient-to-br from-green-400 to-green-600 hover:from-green-500 hover:to-green-700 disabled:from-gray-400 disabled:to-gray-500 shadow-2xl transition-all duration-200 transform hover:scale-105 disabled:scale-100 flex items-center justify-center cursor-pointer ${!isLoading ? "animate-pulse-scale" : ""}`}
+          className={`relative w-40 h-40 rounded-full bg-gradient-to-br from-green-400 to-green-600 hover:from-green-500 hover:to-green-700 disabled:from-gray-400 disabled:to-gray-500 shadow-2xl transition-all duration-200 transform hover:scale-105 disabled:scale-100 flex items-center justify-center cursor-pointer ${
+            !isLoading ? "animate-pulse-scale" : ""
+          }`}
         >
           <Image
             src="/watering_pot_icon.png"
