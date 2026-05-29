@@ -56,7 +56,7 @@
                     └──→ ┌─────────────────────────┐
                         │ Store in cookies:       │
                         │ - deviceId              │
-                        │ - roommateeName         │
+                        │ - roommateName         │
                         │ (365 day expiration)    │
                         └─────────────────────────┘
                                     ↓
@@ -172,7 +172,7 @@
 ```
 User taps button
         ↓
-    (1) recordWatering(deviceId, roommateeName)
+    (1) recordWatering(deviceId, roommateName)
         ↓
     [Client]                    [Server]
         ├──────────────────────→ recordWatering()
@@ -203,7 +203,7 @@ Browser Storage
 │    Browser Cookies          │
 ├─────────────────────────────┤
 │ deviceId: "a1:b2:c3:..."    │  365-day expiration
-│ roommateeName: "Alice"      │
+│ roommateName: "Alice"      │
 └─────────────────────────────┘
 
 Session Flow:
@@ -249,7 +249,7 @@ Properties:
 ```
 <RootLayout>
     └─ <Home> (page.tsx)
-        ├─ State: isAuthenticated, deviceId, roommateeName
+        ├─ State: isAuthenticated, deviceId, roommateName
         ├─ Conditional rendering:
         │
         ├─ (Not authenticated)
@@ -272,7 +272,7 @@ Properties:
 ## 🔌 Server Actions API
 
 ```
-recordWatering(deviceId: string, roommateeName: string)
+recordWatering(deviceId: string, roommateName: string)
 ├─ Input: Device ID and roommate name
 ├─ Action: Append to CSV with current timestamp
 └─ Return: {success: boolean, timestamp?: string}

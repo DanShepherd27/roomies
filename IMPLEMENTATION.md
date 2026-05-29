@@ -127,7 +127,7 @@ First Visit:
 ```
 User clicks button:
   1. Disable button and show loading spinner
-  2. Call server action: recordWatering(deviceId, roommateeName)
+  2. Call server action: recordWatering(deviceId, roommateName)
   3. Server appends to CSV with current timestamp
   4. Return timestamp to client
   5. Update counter to show "0 days ago"

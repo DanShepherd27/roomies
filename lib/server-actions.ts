@@ -26,11 +26,11 @@ async function ensureCSVHeader() {
   }
 }
 
-export async function recordWatering(deviceId: string, roommateeName: string) {
+export async function recordWatering(deviceId: string, roommateName: string) {
   try {
     await ensureCSVHeader();
     const timestamp = new Date().toISOString();
-    const csvLine = `${deviceId},"${roommateeName}",${timestamp}\n`;
+    const csvLine = `${deviceId},"${roommateName}",${timestamp}\n`;
     await appendFile(WATERING_LOG_FILE, csvLine);
     return { success: true, timestamp };
   } catch (error) {

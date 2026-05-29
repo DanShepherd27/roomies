@@ -7,11 +7,11 @@ import WateringCounter from "@/components/WateringCounter";
 export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [deviceId, setDeviceId] = useState("");
-  const [roommateeName, setRoommateeName] = useState("");
+  const [roommateName, setRoommateName] = useState("");
 
-  const handleAuth = (deviceId: string, roommateeName: string) => {
+  const handleAuth = (deviceId: string, roommateName: string) => {
     setDeviceId(deviceId);
-    setRoommateeName(roommateeName);
+    setRoommateName(roommateName);
     setIsAuthenticated(true);
   };
 
@@ -19,5 +19,5 @@ export default function Home() {
     return <AuthFlow onAuth={handleAuth} />;
   }
 
-  return <WateringCounter deviceId={deviceId} roommateeName={roommateeName} />;
+  return <WateringCounter deviceId={deviceId} roommateName={roommateName} />;
 }

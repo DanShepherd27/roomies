@@ -1,12 +1,50 @@
-// List of valid access codes for roommates
-// You can change these codes as needed
-export const VALID_ACCESS_CODES = ["ROOM001", "ROOM002", "ROOM003", "ROOM004"];
+"use server";
 
-export function isValidAccessCode(code: string): boolean {
-  return VALID_ACCESS_CODES.includes(code.toUpperCase().trim());
+import { promises as fs } from "fs";
+import path from "path";
+
+interface CodeEntry {
+  code: string;
+  name: string;
+  createdAt: string;
+  isAdmin?: boolean;
 }
 
-export function getDefaultNameForCode(code: string): string {
-  const index = VALID_ACCESS_CODES.indexOf(code.toUpperCase().trim());
-  return index !== -1 ? `Roommate ${index + 1}` : "User";
+const CODES_FILE = path.join(process.cwd(), "data", "access_codes.json");
+
+async function readAccessCodes(): Promise<CodeEntry[]> {
+  try {
+    const content = await fs.readFile(CODES_FILE, "utf-8");
+    return JSON.parse(content) as CodeEntry[];
+  } catch {
+    // If file doesn't exist, return default codes
+    return [
+      {
+        code: "ROOMMATE01",
+        name: "Roommate 1",
+        createdAt: new Date().toISOString(),
+        isAdmin: false,
+      },
+    ];
+  }
+}
+
+export async function isValidAccessCode(code: string): Promise<boolean> {
+  const codes = await readAccessCodes();
+  const upperCode = code.toUpperCase().trim();
+  return codes.some((c) => c.code === upperCode);
+}
+
+export async function isMasterKey(code: string): Promise<boolean> {
+  const codes = await readAccessCodes();
+  const upperCode = code.toUpperCase().trim();
+  const codeEntry = codes.find((c) => c.code === upperCode);
+  return codeEntry?.isAdmin === true;
+}
+
+export async function getDefaultNameForCode(code: string): Promise<string> {
+  const codes = await readAccessCodes();
+  const upperCode = code.toUpperCase().trim();
+  const codeEntry = codes.find((c) => c.code === upperCode);
+  return codeEntry?.name || "User";
 }

@@ -6,7 +6,7 @@ import { isValidAccessCode, getDefaultNameForCode } from "@/lib/access-codes";
 import { setCookie, getCookie } from "@/lib/cookies";
 
 interface AuthFlowProps {
-  onAuth: (deviceId: string, roommateeName: string) => void;
+  onAuth: (deviceId: string, roommateName: string) => void;
 }
 
 export default function AuthFlow({ onAuth }: AuthFlowProps) {
@@ -14,7 +14,7 @@ export default function AuthFlow({ onAuth }: AuthFlowProps) {
     "loading",
   );
   const [accessCode, setAccessCode] = useState("");
-  const [roommateeName, setRoommateeName] = useState("");
+  const [roommateName, setRoommateName] = useState("");
   const [error, setError] = useState("");
   const [deviceId, setDeviceId] = useState<string | null>(null);
 
@@ -22,11 +22,11 @@ export default function AuthFlow({ onAuth }: AuthFlowProps) {
     const initializeAuth = async () => {
       // Check if user already has a device ID and name stored in cookies
       const storedDeviceId = getCookie("deviceId");
-      const storedRoommateeName = getCookie("roommateeName");
+      const storedRoommateName = getCookie("roommateName");
 
-      if (storedDeviceId && storedRoommateeName) {
+      if (storedDeviceId && storedRoommateName) {
         // User is already authenticated
-        onAuth(storedDeviceId, storedRoommateeName);
+        onAuth(storedDeviceId, storedRoommateName);
         return;
       }
 
@@ -46,17 +46,20 @@ export default function AuthFlow({ onAuth }: AuthFlowProps) {
     initializeAuth();
   }, [onAuth]);
 
-  const handleAccessCodeSubmit = (e: React.FormEvent) => {
+  const handleAccessCodeSubmit = async (
+    e: React.SubmitEvent<HTMLFormElement>,
+  ) => {
     e.preventDefault();
     setError("");
 
-    if (!isValidAccessCode(accessCode)) {
+    const isValid = await isValidAccessCode(accessCode);
+    if (!isValid) {
       setError("Invalid access code. Please try again.");
       return;
     }
 
-    const defaultName = getDefaultNameForCode(accessCode);
-    setRoommateeName(defaultName);
+    const defaultName = await getDefaultNameForCode(accessCode);
+    setRoommateName(defaultName);
     setStep("name-entry");
   };
 
@@ -64,7 +67,7 @@ export default function AuthFlow({ onAuth }: AuthFlowProps) {
     e.preventDefault();
     setError("");
 
-    if (!roommateeName.trim()) {
+    if (!roommateName.trim()) {
       setError("Please enter your name.");
       return;
     }
@@ -76,9 +79,9 @@ export default function AuthFlow({ onAuth }: AuthFlowProps) {
 
     // Store in cookies
     setCookie("deviceId", deviceId, 365);
-    setCookie("roommateeName", roommateeName, 365);
+    setCookie("roommateName", roommateName, 365);
 
-    onAuth(deviceId, roommateeName);
+    onAuth(deviceId, roommateName);
   };
 
   if (step === "loading") {
@@ -124,7 +127,7 @@ export default function AuthFlow({ onAuth }: AuthFlowProps) {
             </div>
             <button
               type="submit"
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition"
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition cursor-pointer"
             >
               Verify Access
             </button>
@@ -160,8 +163,8 @@ export default function AuthFlow({ onAuth }: AuthFlowProps) {
               <input
                 id="name"
                 type="text"
-                value={roommateeName}
-                onChange={(e) => setRoommateeName(e.target.value)}
+                value={roommateName}
+                onChange={(e) => setRoommateName(e.target.value)}
                 placeholder="Enter your name"
                 className="text-gray-600 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
                 autoFocus
