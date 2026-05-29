@@ -120,93 +120,101 @@ export default function StatsView() {
           <div className="w-10"></div>
         </div>
 
-        {/* Range Selector */}
-        <div className="flex bg-gray-100 p-1 rounded-xl mb-8">
-          {(["30d", "year", "all"] as TimeRange[]).map((r) => (
-            <button
-              key={r}
-              onClick={() => setRange(r)}
-              className={`flex-1 py-2 text-sm font-medium rounded-lg transition cursor-pointer ${
-                range === r
-                  ? "bg-white text-green-600 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              {r === "30d"
-                ? "Last 30 Days"
-                : r === "year"
-                  ? "This Year"
-                  : "All Time"}
-            </button>
-          ))}
-        </div>
-
         {isLoading ? (
           <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
-          </div>
-        ) : history.length === 0 ? (
-          <div className="text-center py-12 text-gray-500">
-            No data available yet.
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
           </div>
         ) : (
           <>
-            {/* Top Waterers Chart */}
-            <div className="mb-10">
-              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">
-                Top Waterers
-              </h3>
-              <div className="space-y-4">
-                {stats.userCounts.map((user, index) => (
-                  <div key={user.name} className="relative pt-1">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-semibold text-gray-700">
-                        {user.name}
-                      </span>
-                      <span className="text-xs font-bold text-green-600">
-                        {user.count} times
-                      </span>
-                    </div>
-                    <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-gray-100">
-                      <div
-                        style={{ width: `${(user.count / maxCount) * 100}%` }}
-                        className={`shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center ${colors[index % colors.length]}`}
-                      ></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+            {/* Range Selector */}
+            <div className="flex bg-gray-100 p-1 rounded-xl mb-8">
+              {(["30d", "year", "all"] as TimeRange[]).map((r) => (
+                <button
+                  key={r}
+                  onClick={() => setRange(r)}
+                  className={`flex-1 py-2 text-sm font-medium rounded-lg transition cursor-pointer ${
+                    range === r
+                      ? "bg-white text-green-600 shadow-sm"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  {r === "30d"
+                    ? "Last 30 Days"
+                    : r === "year"
+                      ? "This Year"
+                      : "All Time"}
+                </button>
+              ))}
             </div>
 
-            {/* Insight Cards */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-green-50 p-4 rounded-xl border border-green-100">
-                <p className="text-xs font-bold text-green-700 uppercase mb-1">
-                  Avg. Period
-                </p>
-                <p className="text-2xl font-bold text-gray-800">
-                  {stats.avgPeriod.toFixed(1)}{" "}
-                  <span className="text-sm font-normal text-gray-500">hrs</span>
-                </p>
-                <p className="text-[10px] text-green-600 mt-1">
-                  Between waterings
-                </p>
+            {history.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                No data available yet.
               </div>
-              <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100">
-                <p className="text-xs font-bold text-emerald-700 uppercase mb-1">
-                  Longest Gap
-                </p>
-                <p className="text-2xl font-bold text-gray-800">
-                  {stats.maxGap.toFixed(1)}{" "}
-                  <span className="text-sm font-normal text-gray-500">
-                    days
-                  </span>
-                </p>
-                <p className="text-[10px] text-emerald-600 mt-1">
-                  Without water
-                </p>
-              </div>
-            </div>
+            ) : (
+              <>
+                {/* Top Waterers Chart */}
+                <div className="mb-10">
+                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">
+                    Top Waterers
+                  </h3>
+                  <div className="space-y-4">
+                    {stats.userCounts.map((user, index) => (
+                      <div key={user.name} className="relative pt-1">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-semibold text-gray-700">
+                            {user.name}
+                          </span>
+                          <span className="text-xs font-bold text-green-600">
+                            {user.count} times
+                          </span>
+                        </div>
+                        <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-gray-100">
+                          <div
+                            style={{
+                              width: `${(user.count / maxCount) * 100}%`,
+                            }}
+                            className={`shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center ${colors[index % colors.length]}`}
+                          ></div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Insight Cards */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-green-50 p-4 rounded-xl border border-green-100">
+                    <p className="text-xs font-bold text-green-700 uppercase mb-1">
+                      Avg. Period
+                    </p>
+                    <p className="text-2xl font-bold text-gray-800">
+                      {stats.avgPeriod.toFixed(1)}{" "}
+                      <span className="text-sm font-normal text-gray-500">
+                        hrs
+                      </span>
+                    </p>
+                    <p className="text-[10px] text-green-600 mt-1">
+                      Between waterings
+                    </p>
+                  </div>
+                  <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100">
+                    <p className="text-xs font-bold text-emerald-700 uppercase mb-1">
+                      Longest Gap
+                    </p>
+                    <p className="text-2xl font-bold text-gray-800">
+                      {stats.maxGap.toFixed(1)}{" "}
+                      <span className="text-sm font-normal text-gray-500">
+                        days
+                      </span>
+                    </p>
+                    <p className="text-[10px] text-emerald-600 mt-1">
+                      Without water
+                    </p>
+                  </div>
+                </div>
+              </>
+            )}
           </>
         )}
 

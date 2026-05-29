@@ -9,11 +9,14 @@ export default function HistoryView() {
     { roommate_name: string; timestamp: string }[]
   >([]);
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchHistory = async () => {
+      setIsLoading(true);
       const data = await getWateringHistory();
       setHistory(data);
+      setIsLoading(false);
     };
     fetchHistory();
   }, []);
@@ -77,40 +80,48 @@ export default function HistoryView() {
           <div className="w-10"></div>
         </div>
 
-        <div className="flex justify-between items-center mb-4">
-          <button
-            onClick={prevMonth}
-            className="p-2 hover:bg-gray-100 rounded-full transition cursor-pointer text-gray-600"
-          >
-            ←
-          </button>
-          <h3 className="font-bold text-gray-700">
-            {monthName} {year}
-          </h3>
-          <button
-            onClick={nextMonth}
-            className="p-2 hover:bg-gray-100 rounded-full transition cursor-pointer text-gray-600"
-          >
-            →
-          </button>
-        </div>
-
-        <div className="grid grid-cols-7 border-t border-l border-gray-100">
-          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
-            <div
-              key={day}
-              className="text-center text-[10px] font-bold text-gray-400 py-2 border-b border-r border-gray-100 uppercase"
-            >
-              {day}
+        {isLoading ? (
+          <div className="flex justify-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+          </div>
+        ) : (
+          <>
+            <div className="flex justify-between items-center mb-4">
+              <button
+                onClick={prevMonth}
+                className="p-2 hover:bg-gray-100 rounded-full transition cursor-pointer text-gray-600"
+              >
+                ←
+              </button>
+              <h3 className="font-bold text-gray-700">
+                {monthName} {year}
+              </h3>
+              <button
+                onClick={nextMonth}
+                className="p-2 hover:bg-gray-100 rounded-full transition cursor-pointer text-gray-600"
+              >
+                →
+              </button>
             </div>
-          ))}
-          {calendarDays}
-        </div>
 
-        <div className="mt-6 flex items-center justify-center space-x-2 text-sm text-gray-500">
-          <span className="text-green-600 font-bold">X</span>
-          <span>= Plants were watered</span>
-        </div>
+            <div className="grid grid-cols-7 border-t border-l border-gray-100">
+              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+                <div
+                  key={day}
+                  className="text-center text-[10px] font-bold text-gray-400 py-2 border-b border-r border-gray-100 uppercase"
+                >
+                  {day}
+                </div>
+              ))}
+              {calendarDays}
+            </div>
+
+            <div className="mt-6 flex items-center justify-center space-x-2 text-sm text-gray-500">
+              <span className="text-green-600 font-bold">X</span>
+              <span>= Plants were watered</span>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
