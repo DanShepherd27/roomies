@@ -56,6 +56,9 @@ The application requires the following environment variables. Create a `.env.loc
 | `DEFAULT_ACCESS_CODE` | The master key used to initialize the first admin account. | Yes |
 | `MONGODB_URI` | MongoDB Atlas connection string, including the database-user password. | Yes |
 | `MONGODB_DB` | Database name. Defaults to `roomies`. | No |
+| `NEXT_PUBLIC_APP_VERSION` | Optional manual version label for local or non-Vercel deployments. | No |
+
+On Vercel, the admin screen automatically displays the short Git commit SHA and deployment environment. Enable **Automatically expose System Environment Variables** in the project environment settings so `VERCEL_GIT_COMMIT_SHA` and `VERCEL_ENV` are available during the build.
 
 ## 📋 How It Works
 
