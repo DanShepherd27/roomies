@@ -1,6 +1,6 @@
 # 🌿 Roomies - Plant Watering Tracker
 
-A modern web app for roommates to track shared plant watering. Features a persistent Vercel Blob storage, device-based authentication, interactive history calendar, and detailed statistics.
+A modern web app for roommates to track shared plant watering. Features MongoDB Atlas persistence, device-based authentication, interactive history calendar, and detailed statistics.
 
 ## ✨ Features
 
@@ -19,13 +19,13 @@ A modern web app for roommates to track shared plant watering. Features a persis
 ### 📊 Data & Insights
 - **Watering History** - Monthly calendar view marking every day someone watered the plants with an 'X'.
 - **Statistics & Charts** - Visual charts showing top waterers, average watering periods, and longest gaps without water.
-- **Persistent Storage** - All data is stored securely in **Vercel Blob** storage, surviving redeployments and serverless restarts.
+- **Persistent Storage** - All data is stored securely in **MongoDB Atlas**, surviving redeployments and serverless restarts.
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 - Node.js 18+
-- Vercel account (for production storage)
+- MongoDB Atlas database (for production storage)
 
 ### Installation
 ```bash
@@ -54,21 +54,20 @@ The application requires the following environment variables. Create a `.env.loc
 | Variable | Description | Required |
 | :--- | :--- | :--- |
 | `DEFAULT_ACCESS_CODE` | The master key used to initialize the first admin account. | Yes |
-| `BLOB_READ_WRITE_TOKEN` | Token for Vercel Blob storage access. | Yes |
-| `VERCEL_BLOB_TOKEN` | (Optional) Duplicate of `BLOB_READ_WRITE_TOKEN` for some SDK versions. | No |
+| `MONGODB_URI` | MongoDB Atlas connection string, including the database-user password. | Yes |
+| `MONGODB_DB` | Database name. Defaults to `roomies`. | No |
 
 ## 📋 How It Works
 
-### Persistent Storage (Vercel Blob)
-The application uses **Vercel Blob** for persistent storage in production. 
-- **Private Access**: All blobs are stored with `access: 'private'` for security.
-- **Real-time Sync**: Caching is disabled (`useCache: false`) on all operations to ensure all devices see updates instantly.
-- **Local Fallback**: If no blob token is provided, the app falls back to the local `data/` folder for development.
+### Persistent Storage (MongoDB Atlas)
+The application uses **MongoDB Atlas** for persistent storage in production.
+- **Collections**: `access_codes` stores roommate codes and roles; `watering_events` stores each watering event.
+- **Server-only access**: Keep `MONGODB_URI` in Vercel environment variables and never expose it with a `NEXT_PUBLIC_` prefix.
+- **Local Fallback**: If `MONGODB_URI` is absent, the app uses the local `data/` folder for development.
 
 ### Data Formats
-- **Access Codes**: JSON format (`access_codes.json`)
-- **Watering Log**: CSV format (`watering.csv`)
-  - Format: `device_id,roommate_name,timestamp`
+- **Access Codes**: `access_codes` documents containing `code`, `name`, `createdAt`, and `isAdmin`.
+- **Watering Log**: `watering_events` documents containing `deviceId`, `accessCode`, and `timestamp`.
 
 ## 📁 Project Structure
 
@@ -87,16 +86,16 @@ components/
 └── WateringCounter.tsx # Main tracker interface
 
 lib/
-├── access-codes.ts     # Vercel Blob management for codes
+├── access-codes.ts     # MongoDB access-code management
 ├── admin-actions.ts    # Server actions for admin tasks
-├── server-actions.ts   # Server actions for watering & history
+├── server-actions.ts   # MongoDB server actions for watering & history
 └── mac-address.ts      # Device identification logic
 ```
 
 ## 🔐 Security
-- **Private Blobs**: Data is not accessible via public URLs.
+- **MongoDB credentials**: Database access stays server-side in `MONGODB_URI`.
 - **Admin Roles**: Only admin accounts can access the `/admin` panel.
-- **Token Authentication**: Server-side communication with Vercel Blob is authenticated via tokens.
+- **Least privilege**: Give the Atlas database user only the access it needs for the `roomies` database.
 
 ## 👥 Support
 For issues or questions, please open an issue on GitHub or contact your roommate!

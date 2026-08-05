@@ -1,216 +1,95 @@
 "use server";
 
-import { put, list, get } from "@vercel/blob";
 import { promises as fs } from "fs";
 import path from "path";
 import { appendFile } from "fs/promises";
+import { databaseName, getMongoClient } from "./mongodb";
 import { readAccessCodes } from "./access-codes";
 
-// Use Blob if token is present, otherwise fallback to local filesystem
-const USE_BLOB = !!process.env.BLOB_READ_WRITE_TOKEN;
+interface WateringEvent {
+  deviceId: string;
+  accessCode: string;
+  timestamp: string;
+}
+
 const LOCAL_DATA_DIR = path.join(process.cwd(), "data");
 const LOCAL_WATERING_LOG = path.join(LOCAL_DATA_DIR, "watering.csv");
-const BLOB_FILENAME = "watering.csv";
 const CSV_HEADER = "device_id,access_code,timestamp\n";
 
-/**
- * Gets the URL of the watering.csv blob if it exists.
- */
-async function getBlobUrl(): Promise<string | null> {
-  try {
-    const { blobs } = await list({
-      prefix: BLOB_FILENAME,
-    });
-    // Find exact match to avoid random suffix issues
-    const blob = blobs.find((b) => b.pathname === BLOB_FILENAME);
-    return blob ? blob.url : null;
-  } catch (err) {
-    console.error("Error listing blobs:", err);
-    return null;
-  }
+async function wateringCollection() {
+  const client = await getMongoClient();
+  const collection = client.db(databaseName).collection<WateringEvent>("watering_events");
+  await collection.createIndex({ timestamp: -1 });
+  return collection;
 }
 
-/**
- * Helper to fetch private blob content using the SDK's get() method.
- */
-async function fetchBlobContent(url: string) {
-  try {
-    const blobResponse = await get(url, {
-      access: "private",
-      useCache: false,
-    });
-    const response = new Response(blobResponse?.stream);
-    if (!response.ok) {
-      console.error(
-        `Blob fetch failed with status ${response.status}: ${response.statusText}`,
-      );
-    }
-    return response;
-  } catch (err) {
-    console.error("Error fetching private blob with SDK:", err);
-    throw err;
-  }
-}
-
-// Ensure data directory exists (for local)
-async function ensureDataDir() {
-  if (USE_BLOB) return;
-  try {
-    await fs.access(LOCAL_DATA_DIR);
-  } catch {
-    await fs.mkdir(LOCAL_DATA_DIR, { recursive: true });
-  }
-}
-
-// Initialize CSV file if it doesn't exist
-async function ensureCSVHeader() {
-  if (USE_BLOB) {
-    const url = await getBlobUrl();
-    if (!url) {
-      console.log("Initializing watering.csv in Vercel Blob (private)");
-      await put(BLOB_FILENAME, CSV_HEADER, {
-        access: "private",
-        addRandomSuffix: false,
-        allowOverwrite: true,
-      });
-      console.log("Watering log initialized in Blob.");
-    }
-    return;
-  }
-
+async function ensureLocalWateringLog() {
+  await fs.mkdir(LOCAL_DATA_DIR, { recursive: true });
   try {
     await fs.access(LOCAL_WATERING_LOG);
   } catch {
-    await ensureDataDir();
     await fs.writeFile(LOCAL_WATERING_LOG, CSV_HEADER);
   }
 }
 
+async function readLocalEvents(): Promise<WateringEvent[]> {
+  await ensureLocalWateringLog();
+  return (await fs.readFile(LOCAL_WATERING_LOG, "utf-8"))
+    .split("\n")
+    .filter((line) => line.trim() && !line.startsWith("device_id"))
+    .map((line) => {
+      const [deviceId, quotedCode, timestamp] = line.split(",");
+      return { deviceId, accessCode: quotedCode.replace(/^"|"$/g, ""), timestamp };
+    });
+}
+
 export async function recordWatering(deviceId: string, accessCode: string) {
   try {
-    await ensureCSVHeader();
-    const timestamp = new Date().toISOString();
-    // Use accessCode instead of name in the CSV
-    const csvLine = `${deviceId},"${accessCode.toUpperCase()}",${timestamp}\n`;
+    const event: WateringEvent = {
+      deviceId,
+      accessCode: accessCode.toUpperCase().trim(),
+      timestamp: new Date().toISOString(),
+    };
 
-    if (USE_BLOB) {
-      console.log("Recording watering to Vercel Blob...");
-      const url = await getBlobUrl();
-      let currentContent = CSV_HEADER;
-      if (url) {
-        const response = await fetchBlobContent(url);
-        if (response.ok) {
-          currentContent = await response.text();
-        }
-      }
-
-      const newContent = currentContent.endsWith("\n")
-        ? currentContent + csvLine
-        : currentContent + "\n" + csvLine;
-
-      // Use allowOverwrite: true to replace the existing blob
-      await put(BLOB_FILENAME, newContent, {
-        access: "private",
-        addRandomSuffix: false,
-        allowOverwrite: true,
-      });
-      console.log("Watering recorded successfully to Blob.");
+    if (process.env.MONGODB_URI) {
+      await (await wateringCollection()).insertOne(event);
     } else {
-      await appendFile(LOCAL_WATERING_LOG, csvLine);
+      await ensureLocalWateringLog();
+      await appendFile(LOCAL_WATERING_LOG, `${event.deviceId},"${event.accessCode}",${event.timestamp}\n`);
     }
-
-    return { success: true, timestamp };
+    return { success: true, timestamp: event.timestamp };
   } catch (error) {
     console.error("Error recording watering:", error);
     return { success: false, error: "Failed to record watering" };
   }
 }
 
-/**
- * Returns the most recent watering timestamp from ANY device.
- * This ensures the counter is synced across all roommates.
- */
-export async function getLastWateringTime(
-  _deviceId: string, // Kept for signature compatibility but ignored for global sync
-): Promise<string | null> {
+export async function getLastWateringTime(_deviceId: string): Promise<string | null> {
   try {
-    await ensureCSVHeader();
-    let content = "";
-
-    if (USE_BLOB) {
-      const url = await getBlobUrl();
-      if (url) {
-        const response = await fetchBlobContent(url);
-        if (response.ok) {
-          content = await response.text();
-        }
-      }
-    } else {
-      content = await fs.readFile(LOCAL_WATERING_LOG, "utf-8");
+    if (process.env.MONGODB_URI) {
+      const event = await (await wateringCollection()).findOne(
+        {},
+        { projection: { timestamp: 1 }, sort: { timestamp: -1 } },
+      );
+      return event?.timestamp || null;
     }
-
-    if (!content) return null;
-
-    const lines = content
-      .split("\n")
-      .filter((line) => line.trim() && !line.startsWith("device_id"));
-
-    // If there are no log lines, return null
-    if (lines.length === 0) return null;
-
-    // The last line in the CSV is the most recent watering event
-    const lastLine = lines[lines.length - 1];
-    const parts = lastLine.split(",");
-
-    // According to CSV schema: device_id,access_code,timestamp
-    // Timestamp is at index 2
-    return parts[2] || null;
+    return (await readLocalEvents()).at(-1)?.timestamp || null;
   } catch (error) {
     console.error("Error reading watering log:", error);
     return null;
   }
 }
 
-export async function getWateringHistory(): Promise<
-  { roommate_name: string; timestamp: string }[]
-> {
+export async function getWateringHistory(): Promise<{ roommate_name: string; timestamp: string }[]> {
   try {
-    await ensureCSVHeader();
-    let content = "";
-
-    if (USE_BLOB) {
-      const url = await getBlobUrl();
-      if (url) {
-        const response = await fetchBlobContent(url);
-        if (response.ok) {
-          content = await response.text();
-        }
-      }
-    } else {
-      content = await fs.readFile(LOCAL_WATERING_LOG, "utf-8");
-    }
-
-    if (!content) return [];
-
-    const lines = content
-      .split("\n")
-      .filter((line) => line.trim() && !line.startsWith("device_id"));
-
-    // Get latest access codes to resolve names
-    const codes = await readAccessCodes();
-    const codeMap = new Map(codes.map((c) => [c.code.toUpperCase(), c.name]));
-
-    return lines.map((line) => {
-      const parts = line.split(",");
-      // parts[1] is now access_code
-      const code = parts[1].replace(/^"|"$/g, "").toUpperCase();
-      const name = codeMap.get(code) || "Unknown User";
-
-      return {
-        roommate_name: name,
-        timestamp: parts[2],
-      };
-    });
+    const events = process.env.MONGODB_URI
+      ? await (await wateringCollection()).find({}, { projection: { _id: 0 } }).sort({ timestamp: 1 }).toArray()
+      : await readLocalEvents();
+    const codeMap = new Map((await readAccessCodes()).map((entry) => [entry.code, entry.name]));
+    return events.map((event) => ({
+      roommate_name: codeMap.get(event.accessCode) || "Unknown User",
+      timestamp: event.timestamp,
+    }));
   } catch (error) {
     console.error("Error reading watering history:", error);
     return [];
