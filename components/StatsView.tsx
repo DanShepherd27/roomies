@@ -217,10 +217,6 @@ export default function StatsView() {
             )}
           </>
         )}
-
-        <p className="text-center text-[10px] text-gray-400 mt-8">
-          Data updated in real-time from Vercel Blob
-        </p>
       </div>
     </div>
   );
