@@ -36,7 +36,7 @@
                     ↓                             ↓
         ┌──────────────────────┐    ┌──────────────────────┐
         │ User enters name or  │    │ User enters code     │
-        │ accepts "Roommate"   │    │ (Validated via Blob) │
+        │ accepts "Roommate"   │    │ (Validated via Atlas)│
         └──────────────────────┘    └──────────────────────┘
                     ↓                             ↓
                     └──→ ┌─────────────────────────┐
@@ -65,8 +65,8 @@
                         └─────────────────────────┘
                                     ↓
                         ┌─────────────────────────┐
-                        │  Server appends to:     │
-                        │  Vercel Blob (CSV)      │
+                        │ Server inserts an event │
+                        │ into MongoDB Atlas      │
                         └─────────────────────────┘
 ```
 
@@ -79,41 +79,49 @@
 - **`AdminPanel.tsx`**: Restricted area for managing access codes and admin privileges.
 
 ### Backend (Server Actions)
-- **`server-actions.ts`**: Handles persistent logging to Vercel Blob and retrieval of history/stats.
-- **`access-codes.ts`**: Manages the `access_codes.json` blob with strict cache-busting.
+- **`server-actions.ts`**: Inserts watering events into MongoDB Atlas and retrieves history and statistics.
+- **`access-codes.ts`**: Manages Atlas access-code documents and initializes the default admin code.
 - **`admin-actions.ts`**: Logic for adding, deleting, and updating access codes.
+- **`mongodb.ts`**: Creates and reuses the MongoDB client connection and selects the configured database.
 
-### Storage (Vercel Blob)
-- **`watering.csv`**: Append-only (simulated) log for all watering events.
-- **`access_codes.json`**: Registry of valid access codes and permissions.
-- **Security**: Private access enabled for all blobs; no-cache headers enforced for real-time synchronization.
+### Storage (MongoDB Atlas)
+- **`watering_events` collection**: One document per watering event, with `deviceId`, `accessCode`, and an ISO 8601 `timestamp`.
+- **`access_codes` collection**: Access-code registry with `code`, `name`, `createdAt`, and optional `isAdmin` fields.
+- **Indexes**: The app creates a descending `timestamp` index for watering events and a unique `code` index for access codes.
+- **Security**: The Atlas connection string remains server-only in `MONGODB_URI`; scope the database user to the application database.
 
 ## 🔄 Data Flow: Watering Recording
 
 ```
 User taps button
         ↓
-    (1) recordWatering(deviceId, roommateName)
+    (1) recordWatering(deviceId, accessCode)
         ↓
     [Client]                    [Server]
         ├──────────────────────→ recordWatering()
         │                            ↓
-        │                    Fetch current watering.csv (No Cache)
-        │                            ↓
-        │                    Append new line
-        │                            ↓
-        │                    Upload to Vercel Blob (Overwrite)
+        │                    Insert one document in
+        │                    watering_events
         │                            ↓
         │    ← {success, timestamp}
         ↓
 Update counter and refresh global state
 ```
 
-## 📊 CSV Data Schema
-File: `watering.csv` (Private Blob)
-Header: `device_id,roommate_name,timestamp`
+## 📊 Watering Event Schema
+
+Collection: `watering_events`
+
+```json
+{
+  "deviceId": "device_abc123",
+  "accessCode": "ROOMMATE01",
+  "timestamp": "2026-08-10T14:30:00.000Z"
+}
+```
 
 ## 🔌 Environment & Deployment
 - **Deployment**: Vercel
-- **Persistent Data**: Vercel Blob
-- **Local Dev**: Fallback to `/data` folder if no `BLOB_READ_WRITE_TOKEN` is found.
+- **Persistent Data**: MongoDB Atlas
+- **Required**: Set `MONGODB_URI` to the Atlas connection string. Set `MONGODB_DB` to override the default `roomies` database.
+- **Local Dev**: If `MONGODB_URI` is absent, the app uses the `/data` folder as a file-based fallback.
