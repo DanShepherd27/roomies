@@ -1,8 +1,36 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { getWateringHistory } from "@/lib/server-actions";
+
+const MONDAY = 1;
+
+function getCalendarLocale() {
+  if (typeof navigator === "undefined") {
+    return undefined;
+  }
+
+  return navigator.language;
+}
+
+const subscribeToLocale = () => () => {};
+const getServerLocale = () => undefined;
+
+function getFirstDayOfWeek(locale: string | undefined) {
+  if (!locale) {
+    return MONDAY;
+  }
+
+  try {
+    const localeWithWeekInfo = new Intl.Locale(locale) as Intl.Locale & {
+      getWeekInfo?: () => { firstDay: number };
+    };
+    return localeWithWeekInfo.getWeekInfo?.().firstDay ?? MONDAY;
+  } catch {
+    return MONDAY;
+  }
+}
 
 export default function HistoryView() {
   const [history, setHistory] = useState<
@@ -10,6 +38,11 @@ export default function HistoryView() {
   >([]);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [isLoading, setIsLoading] = useState(true);
+  const locale = useSyncExternalStore(
+    subscribeToLocale,
+    getCalendarLocale,
+    getServerLocale,
+  );
 
   useEffect(() => {
     const fetchHistory = async () => {
@@ -28,10 +61,16 @@ export default function HistoryView() {
 
   const year = currentMonth.getFullYear();
   const month = currentMonth.getMonth();
-  const monthName = currentMonth.toLocaleString("en-US", { month: "long" });
+  const displayLocale = locale ?? "en-GB";
+  const monthName = currentMonth.toLocaleString(displayLocale, { month: "long" });
 
   const numDays = daysInMonth(year, month);
-  const startDay = firstDayOfMonth(year, month);
+  const firstDayOfWeek = getFirstDayOfWeek(locale);
+  const startDay = (firstDayOfMonth(year, month) - firstDayOfWeek + 7) % 7;
+  const weekDays = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(2023, 0, firstDayOfWeek + index);
+    return new Intl.DateTimeFormat(displayLocale, { weekday: "short" }).format(date);
+  });
 
   const prevMonth = () => setCurrentMonth(new Date(year, month - 1, 1));
   const nextMonth = () => setCurrentMonth(new Date(year, month + 1, 1));
@@ -105,7 +144,7 @@ export default function HistoryView() {
             </div>
 
             <div className="grid grid-cols-7 border-t border-l border-gray-100">
-              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+              {weekDays.map((day) => (
                 <div
                   key={day}
                   className="text-center text-[10px] font-bold text-gray-400 py-2 border-b border-r border-gray-100 uppercase"
