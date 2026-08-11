@@ -68,7 +68,8 @@ export default function HistoryView() {
   const firstDayOfWeek = getFirstDayOfWeek(locale);
   const startDay = (firstDayOfMonth(year, month) - firstDayOfWeek + 7) % 7;
   const weekDays = Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(2023, 0, firstDayOfWeek + index);
+    const dayOfWeek = (firstDayOfWeek + index) % 7;
+    const date = new Date(2023, 0, dayOfWeek + 1);
     return new Intl.DateTimeFormat(displayLocale, { weekday: "short" }).format(date);
   });
 
