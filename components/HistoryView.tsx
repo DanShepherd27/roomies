@@ -11,7 +11,7 @@ function getCalendarLocale() {
     return undefined;
   }
 
-  return navigator.language;
+  return Intl.DateTimeFormat().resolvedOptions().locale || navigator.language;
 }
 
 const subscribeToLocale = () => () => {};
